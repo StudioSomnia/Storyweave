@@ -76,7 +76,7 @@
 
       <section id="editorPane" class="editor" aria-label="Scene editor"></section>
 
-      <aside class="inspector" aria-label="Story state, theme, images, and writing guide">
+      <aside class="inspector" aria-label="Story state, cover and ending text, theme, images, and writing guide">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -92,6 +92,34 @@
           </div>
           <p class="field-note">Create stat sheets, inventories, notes, or hints. Use the arrows to reorder categories.</p>
           <div id="categoryList" class="category-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Reader-facing text</p>
+              <h2>Cover &amp; ending</h2>
+            </div>
+          </div>
+          <div class="story-copy-fields">
+            <label class="field">
+              <span class="field-label">Cover subtitle</span>
+              <textarea id="coverSubtitle" class="textarea" rows="2" maxlength="240" placeholder="Every choice leaves a mark." data-copy-field="coverSubtitle"></textarea>
+            </label>
+            <label class="field">
+              <span class="field-label">Ending title</span>
+              <input id="endingTitle" class="input" type="text" maxlength="80" placeholder="The End" data-copy-field="endingTitle" spellcheck="false">
+            </label>
+            <label class="field">
+              <span class="field-label">Ending message</span>
+              <textarea id="endingMessage" class="textarea" rows="3" maxlength="300" placeholder="You can begin again..." data-copy-field="endingMessage"></textarea>
+            </label>
+            <label class="field">
+              <span class="field-label">Ending button</span>
+              <input id="endingButton" class="input" type="text" maxlength="40" placeholder="Read again" data-copy-field="endingButton" spellcheck="false">
+            </label>
+          </div>
+          <p class="field-note">Shown on the cover and ending screen in playtest and exported stories. Leave the subtitle or message blank to hide it.</p>
         </section>
 
         <section class="panel">
@@ -138,7 +166,16 @@
               <span class="field-label">Text</span>
               <input id="themeInk" type="color" value="#29241f" data-theme-field="ink">
             </label>
+            <label class="color-field">
+              <span class="field-label">Scene title</span>
+              <input id="themeTitleColor" type="color" value="#29241f" data-theme-field="titleColor">
+            </label>
+            <label class="color-field">
+              <span class="field-label">Choice text</span>
+              <input id="themeChoiceColor" type="color" value="#29241f" data-theme-field="choiceColor">
+            </label>
           </div>
+          <p class="field-note">Scene title and choice text colors apply to the preview, playtest, and exported stories.</p>
           <button id="resetThemeBtn" class="btn btn-small btn-quiet theme-reset" type="button">Reset theme</button>
 
           <div class="variable-section image-section">
@@ -221,6 +258,28 @@
         </div>
       </header>
       <div id="playContent" class="play-content"></div>
+    </div>
+  </div>
+
+  <div id="restartOverlay" class="overlay restart-overlay" role="dialog" aria-modal="true" aria-labelledby="restartTitle" hidden>
+    <div class="restart-dialog">
+      <div class="restart-head">
+        <div>
+          <p class="eyebrow">Before you restart</p>
+          <h2 id="restartTitle">Restart the story?</h2>
+        </div>
+        <button id="restartCloseBtn" class="icon-btn" type="button" title="Cancel restart" aria-label="Cancel restart">×</button>
+      </div>
+      <p class="restart-note">This resets your current progress. Manually saved game keys and files are not deleted.</p>
+      <label class="field" for="restartConfirmInput">
+        <span class="field-label">Type restart to confirm</span>
+        <input id="restartConfirmInput" class="input restart-input" type="text" autocomplete="off" spellcheck="false" placeholder="restart">
+      </label>
+      <p id="restartConfirmHint" class="restart-hint">Type “restart” to unlock the confirm button.</p>
+      <div class="restart-actions">
+        <button id="restartCancelBtn" class="btn btn-quiet" type="button">Cancel</button>
+        <button id="restartConfirmBtn" class="btn btn-primary" type="button" disabled>Restart story</button>
+      </div>
     </div>
   </div>
 

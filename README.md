@@ -31,7 +31,8 @@ Press **New** to start from a blank one-act project. New and Import both replace
   - **Inventory** categories show only variables whose count is above zero, with a `×` count.
   - Use categories for stats, inventory, field notes, clues, relationships, or anything else the reader should see.
 - **Stat screen title** — names the in-story state panel. Call it *Story state*, *Stat sheet*, *Field notes*, *Inventory*, or anything else. The title is part of the project and is saved with it, but the exported story has no editor for changing it.
-- **Theme & images** — choose a body font, heading font, accent color, background, and text color. All fonts are self-contained system stacks, so exported stories never load a web font. Uploaded images are compressed when needed and stored inside the project as data URLs.
+- **Cover & ending** — edit the cover subtitle, ending title, ending message, and ending button label. These appear in playtest and in exported stories, and line breaks are preserved. Leave the subtitle or message blank to hide it.
+- **Theme & images** — choose a body font, heading font, accent color, background, text color, scene title color, and choice text color. Scene title and choice text start out matching the text color; change their swatches to give them a different color. All fonts are self-contained system stacks, so exported stories never load a web font. Uploaded images are compressed when needed and stored inside the project as data URLs.
 - **Playtest** — runs the story from the beginning with live categories, restart, and an optional **Show locked choices** view. The state panel never shows a path or history.
 
 Everything is saved automatically to this browser's `localStorage` under `storyweave.project.v1`. The save indicator in the header confirms it. Clearing browser site data removes the autosave, so use **Export → Project JSON** for backups.
@@ -153,7 +154,7 @@ Direct links can also run effects when the reader continues. A scene's **On ente
 
 ### Playable HTML
 
-Downloads one `.html` file containing the story, engine, styles, player, theme, and any embedded images. It has no external dependencies and works offline. Readers open the state panel with the button in the top bar; its title, categories, and contents are fixed by the exported project.
+Downloads one `.html` file containing the story, engine, styles, player, cover and ending text, theme, and any embedded images. It has no external dependencies and works offline. Readers open the state panel with the button in the top bar; its title, categories, and contents are fixed by the exported project.
 
 ### Saving progress in an exported story
 

@@ -17,6 +17,8 @@
   var playState = null;
   var lastFocusedElement = null;
   var imageInsertAtCursor = false;
+  var restartConfirmCallback = null;
+  var restartConfirmReturnFocus = null;
 
   /* ----------------------------------------------------------------------- */
   /* Small helpers                                                           */
@@ -281,6 +283,38 @@
     return String(title == null ? '' : title).trim() || 'Story state';
   }
 
+  var DEFAULT_STORY_COPY = {
+    coverSubtitle: 'Every choice leaves a mark. Some doors only open once.',
+    endingTitle: 'The End',
+    endingMessage: 'You can begin again and see where a different choice leads.',
+    endingButton: 'Read again'
+  };
+
+  function normalizeStoryCopy(raw) {
+    var source = isObject(raw) ? raw : {};
+
+    function text(value, fallback, maxLength) {
+      if (typeof value !== 'string') return fallback;
+      var cleaned = value
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      return cleaned.slice(0, maxLength);
+    }
+
+    return {
+      coverSubtitle: text(source.coverSubtitle, DEFAULT_STORY_COPY.coverSubtitle, 240),
+      endingTitle: text(source.endingTitle, DEFAULT_STORY_COPY.endingTitle, 80) || DEFAULT_STORY_COPY.endingTitle,
+      endingMessage: text(source.endingMessage, DEFAULT_STORY_COPY.endingMessage, 300),
+      endingButton: text(source.endingButton, DEFAULT_STORY_COPY.endingButton, 40) || DEFAULT_STORY_COPY.endingButton
+    };
+  }
+
+  function escMultiline(value) {
+    return esc(String(value == null ? '' : value)).replace(/\n/g, '<br>');
+  }
+
   function isNumericVariableType(type) {
     return type === 'number';
   }
@@ -302,7 +336,9 @@
     headingFont: 'literary',
     accent: '#b75435',
     paper: '#f7f2e8',
-    ink: '#29241f'
+    ink: '#29241f',
+    titleColor: '#29241f',
+    choiceColor: '#29241f'
   };
 
   function fontStack(id) {
@@ -374,12 +410,15 @@
     var headingFont = FONT_CHOICES.some(function (choice) { return choice.id === source.headingFont; })
       ? source.headingFont
       : DEFAULT_THEME.headingFont;
+    var ink = normalizeHexColor(source.ink, DEFAULT_THEME.ink);
     return {
       bodyFont: bodyFont,
       headingFont: headingFont,
       accent: normalizeHexColor(source.accent, DEFAULT_THEME.accent),
       paper: normalizeHexColor(source.paper, DEFAULT_THEME.paper),
-      ink: normalizeHexColor(source.ink, DEFAULT_THEME.ink)
+      ink: ink,
+      titleColor: normalizeHexColor(source.titleColor, ink),
+      choiceColor: normalizeHexColor(source.choiceColor, ink)
     };
   }
 
@@ -412,6 +451,8 @@
       '--surface-rgb': surfaceRgb.r + ', ' + surfaceRgb.g + ', ' + surfaceRgb.b,
       '--ink': value.ink,
       '--ink-rgb': inkRgb.r + ', ' + inkRgb.g + ', ' + inkRgb.b,
+      '--title-ink': value.titleColor,
+      '--choice-ink': value.choiceColor,
       '--muted': muted,
       '--faint': faint,
       '--line': line
@@ -435,6 +476,7 @@
       title: 'The Lantern at Low Tide',
       startId: 'scene_opening',
       statePanel: { title: 'Satchel & Stats' },
+      copy: clone(DEFAULT_STORY_COPY),
       theme: clone(DEFAULT_THEME),
       images: {},
       categories: [
@@ -574,6 +616,7 @@
       title: 'Untitled Story',
       startId: 'scene_opening',
       statePanel: { title: 'Story state' },
+      copy: clone(DEFAULT_STORY_COPY),
       theme: clone(DEFAULT_THEME),
       images: {},
       categories: [
@@ -706,6 +749,7 @@
       title: typeof raw.title === 'string' ? raw.title : 'Untitled Story',
       startId: typeof raw.startId === 'string' ? raw.startId : '',
       statePanel: { title: panelTitle || 'Story state' },
+      copy: normalizeStoryCopy(raw.copy),
       theme: normalizeTheme(raw.theme),
       images: normalizeImages(raw.images),
       categories: [],
@@ -959,17 +1003,29 @@
     els.editorPane = document.getElementById('editorPane');
     els.categoryList = document.getElementById('categoryList');
     els.statePanelTitle = document.getElementById('statePanelTitle');
+    els.coverSubtitle = document.getElementById('coverSubtitle');
+    els.endingTitle = document.getElementById('endingTitle');
+    els.endingMessage = document.getElementById('endingMessage');
+    els.endingButton = document.getElementById('endingButton');
     els.themeBodyFont = document.getElementById('themeBodyFont');
     els.themeHeadingFont = document.getElementById('themeHeadingFont');
     els.themeAccent = document.getElementById('themeAccent');
     els.themePaper = document.getElementById('themePaper');
     els.themeInk = document.getElementById('themeInk');
+    els.themeTitleColor = document.getElementById('themeTitleColor');
+    els.themeChoiceColor = document.getElementById('themeChoiceColor');
     els.imageList = document.getElementById('imageList');
     els.imageInput = document.getElementById('imageInput');
     els.playOverlay = document.getElementById('playOverlay');
     els.playContent = document.getElementById('playContent');
     els.playCloseBtn = document.getElementById('playCloseBtn');
     els.playRestartBtn = document.getElementById('playRestartBtn');
+    els.restartOverlay = document.getElementById('restartOverlay');
+    els.restartConfirmInput = document.getElementById('restartConfirmInput');
+    els.restartConfirmBtn = document.getElementById('restartConfirmBtn');
+    els.restartConfirmHint = document.getElementById('restartConfirmHint');
+    els.restartCloseBtn = document.getElementById('restartCloseBtn');
+    els.restartCancelBtn = document.getElementById('restartCancelBtn');
     els.exportBtn = document.getElementById('exportBtn');
     els.exportMenu = document.getElementById('exportMenu');
     els.fileInput = document.getElementById('fileInput');
@@ -1052,9 +1108,31 @@
     });
 
     els.playCloseBtn.addEventListener('click', closePlaytest);
-    els.playRestartBtn.addEventListener('click', restartPlaytest);
+    els.playRestartBtn.addEventListener('click', function () {
+      openRestartConfirm(restartPlaytest);
+    });
     els.playOverlay.addEventListener('click', function (event) {
       if (event.target === els.playOverlay) closePlaytest();
+    });
+
+    els.restartConfirmInput.addEventListener('input', updateRestartConfirmState);
+    els.restartConfirmInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && !els.restartConfirmBtn.disabled) {
+        event.preventDefault();
+        closeRestartConfirm(true);
+      }
+    });
+    els.restartConfirmBtn.addEventListener('click', function () {
+      closeRestartConfirm(true);
+    });
+    els.restartCloseBtn.addEventListener('click', function () {
+      closeRestartConfirm(false);
+    });
+    els.restartCancelBtn.addEventListener('click', function () {
+      closeRestartConfirm(false);
+    });
+    els.restartOverlay.addEventListener('click', function (event) {
+      if (event.target === els.restartOverlay) closeRestartConfirm(false);
     });
 
     document.addEventListener('click', handleDelegatedClick);
@@ -1071,6 +1149,14 @@
   }
 
   function handleKeydown(event) {
+    if (els.restartOverlay && !els.restartOverlay.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRestartConfirm(false);
+      }
+      return;
+    }
+
     var key = event.key.toLowerCase();
     var command = event.ctrlKey || event.metaKey;
 
@@ -1356,6 +1442,16 @@
     if (els.themeAccent) els.themeAccent.value = theme.accent;
     if (els.themePaper) els.themePaper.value = theme.paper;
     if (els.themeInk) els.themeInk.value = theme.ink;
+    if (els.themeTitleColor) els.themeTitleColor.value = theme.titleColor;
+    if (els.themeChoiceColor) els.themeChoiceColor.value = theme.choiceColor;
+  }
+
+  function renderStoryCopyControls() {
+    var copy = normalizeStoryCopy(story.copy);
+    if (els.coverSubtitle && document.activeElement !== els.coverSubtitle) els.coverSubtitle.value = copy.coverSubtitle;
+    if (els.endingTitle && document.activeElement !== els.endingTitle) els.endingTitle.value = copy.endingTitle;
+    if (els.endingMessage && document.activeElement !== els.endingMessage) els.endingMessage.value = copy.endingMessage;
+    if (els.endingButton && document.activeElement !== els.endingButton) els.endingButton.value = copy.endingButton;
   }
 
   function renderVariables() {
@@ -1370,6 +1466,7 @@
         : '<div class="variable-empty"><p>No categories yet. Add one for stats, inventory, notes, or hints.</p><button type="button" class="btn btn-small btn-soft" data-action="add-category">Add a category</button></div>';
     }
 
+    renderStoryCopyControls();
     renderThemeControls();
     renderImageList();
   }
@@ -1649,11 +1746,13 @@
       bodyHTML = '<p class="preview-empty">Your scene text will appear here.</p>';
     }
 
-    container.innerHTML = bodyHTML + previewFlowHTML(scene, vars);
+    var titleHTML = '<h2 class="preview-scene-title">' + esc(scene.title || 'Untitled scene') + '</h2>';
+    container.innerHTML = titleHTML + bodyHTML + previewFlowHTML(scene, vars);
     applyThemeToPreview();
   }
 
   function previewFlowHTML(scene, vars) {
+    var copy = normalizeStoryCopy(story.copy);
     var html = '<div class="preview-flow"><p class="preview-flow-label">What happens next</p>';
 
     if (scene.mode === 'choices') {
@@ -1682,7 +1781,10 @@
         html += '<p class="preview-muted">No destination scene is set.</p>';
       }
     } else {
-      html += '<div class="preview-ending"><span aria-hidden="true">✦</span> The End</div>';
+      html += '<div class="preview-ending"><span aria-hidden="true">✦</span> ' + esc(copy.endingTitle) + '</div>';
+      if (copy.endingMessage) {
+        html += '<p class="preview-ending-message">' + escMultiline(copy.endingMessage) + '</p>';
+      }
     }
 
     html += '</div>';
@@ -1794,7 +1896,7 @@
         continuePlaytest();
         break;
       case 'play-restart':
-        restartPlaytest();
+        openRestartConfirm(restartPlaytest);
         break;
       default:
         break;
@@ -1817,6 +1919,11 @@
       story.statePanel = story.statePanel || { title: 'Story state' };
       story.statePanel.title = target.value;
       markDirty();
+      return;
+    }
+
+    if (target.dataset.copyField) {
+      updateStoryCopyField(target.dataset.copyField, target.value, false);
       return;
     }
 
@@ -1941,6 +2048,13 @@
       story.statePanel.title = target.value.trim() || 'Story state';
       target.value = statePanelTitle();
       markDirty();
+      return;
+    }
+
+    if (target.dataset.copyField) {
+      updateStoryCopyField(target.dataset.copyField, target.value, true);
+      var normalizedCopy = normalizeStoryCopy(story.copy);
+      target.value = normalizedCopy[target.dataset.copyField];
       return;
     }
 
@@ -2585,13 +2699,33 @@
     showToast(kind === 'item' ? 'Item deleted.' : 'Stat deleted.');
   }
 
+  function updateStoryCopyField(field, value, finalize) {
+    if (field !== 'coverSubtitle' && field !== 'endingTitle' && field !== 'endingMessage' && field !== 'endingButton') return;
+    story.copy = normalizeStoryCopy(story.copy);
+    story.copy[field] = String(value == null ? '' : value);
+    if (finalize) {
+      story.copy = normalizeStoryCopy(story.copy);
+      renderStoryCopyControls();
+    }
+    markDirty();
+    schedulePreview();
+  }
+
   function updateThemeField(field, value, finalize) {
     var theme = story.theme = normalizeTheme(story.theme);
     if (field === 'bodyFont' || field === 'headingFont') {
       if (!FONT_CHOICES.some(function (choice) { return choice.id === value; })) return;
       theme[field] = value;
-    } else if (field === 'accent' || field === 'paper' || field === 'ink') {
-      theme[field] = normalizeHexColor(value, theme[field]);
+    } else if (field === 'accent' || field === 'paper' || field === 'ink' || field === 'titleColor' || field === 'choiceColor') {
+      if (field === 'ink') {
+        var previousInk = theme.ink;
+        var nextInk = normalizeHexColor(value, theme.ink);
+        if (theme.titleColor === previousInk) theme.titleColor = nextInk;
+        if (theme.choiceColor === previousInk) theme.choiceColor = nextInk;
+        theme.ink = nextInk;
+      } else {
+        theme[field] = normalizeHexColor(value, theme[field]);
+      }
     } else {
       return;
     }
@@ -2934,12 +3068,56 @@
   }
 
   function closePlaytest() {
+    if (els.restartOverlay && !els.restartOverlay.hidden) closeRestartConfirm(false);
     els.playOverlay.hidden = true;
     document.body.classList.remove('modal-open');
     playState = null;
     if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
       lastFocusedElement.focus();
     }
+  }
+
+  function openRestartConfirm(callback) {
+    if (!els.restartOverlay) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
+
+    restartConfirmCallback = typeof callback === 'function' ? callback : null;
+    if (els.restartOverlay.hidden) restartConfirmReturnFocus = document.activeElement;
+    els.restartConfirmInput.value = '';
+    els.restartConfirmBtn.disabled = true;
+    els.restartConfirmHint.textContent = 'Type “restart” to unlock the confirm button.';
+    els.restartConfirmHint.classList.remove('is-ready');
+    els.restartOverlay.hidden = false;
+    setTimeout(function () {
+      els.restartConfirmInput.focus();
+    }, 0);
+  }
+
+  function closeRestartConfirm(confirmed) {
+    if (!els.restartOverlay || els.restartOverlay.hidden) return;
+    els.restartOverlay.hidden = true;
+
+    var callback = restartConfirmCallback;
+    restartConfirmCallback = null;
+
+    var target = restartConfirmReturnFocus;
+    restartConfirmReturnFocus = null;
+    if (!confirmed && target && target.focus && document.contains(target)) {
+      try { target.focus(); } catch (error) { /* Ignore focus failures. */ }
+    }
+
+    if (confirmed && callback) callback();
+  }
+
+  function updateRestartConfirmState() {
+    var ready = String(els.restartConfirmInput.value || '').trim().toLowerCase() === 'restart';
+    els.restartConfirmBtn.disabled = !ready;
+    els.restartConfirmHint.textContent = ready
+      ? 'Ready to restart.'
+      : 'Type “restart” to unlock the confirm button.';
+    els.restartConfirmHint.classList.toggle('is-ready', ready);
   }
 
   function restartPlaytest() {
@@ -3074,9 +3252,14 @@
       }
     }
 
+    var copy = normalizeStoryCopy(story.copy);
     var endsNow = playState.ended || scene.mode === 'end';
     var endingHTML = endsNow
-      ? '<div class="play-ending"><span class="play-ending-mark" aria-hidden="true">✦</span><h2>The End</h2><p>Try another path, or return to the editor and keep writing.</p><button type="button" class="btn btn-primary" data-action="play-restart">Play again</button></div>'
+      ? '<div class="play-ending"><span class="play-ending-mark" aria-hidden="true">✦</span>'
+        + '<h2>' + esc(copy.endingTitle) + '</h2>'
+        + (copy.endingMessage ? '<p>' + escMultiline(copy.endingMessage) + '</p>' : '')
+        + '<button type="button" class="btn btn-primary" data-action="play-restart">' + esc(copy.endingButton) + '</button>'
+        + '</div>'
       : '';
 
     var kicker = 'Playtest';
@@ -3457,6 +3640,7 @@
     }
     .chapter-title {
       margin: 0 0 34px;
+      color: var(--title-ink, var(--ink));
       font-family: var(--heading-font, var(--serif));
       font-size: clamp(36px, 5vw, 54px);
       font-weight: 500;
@@ -3531,7 +3715,7 @@
       border: 1px solid var(--line);
       border-radius: 13px;
       background: rgba(253, 250, 244, 0.72);
-      color: var(--ink);
+      color: var(--choice-ink, var(--ink));
       text-align: left;
       cursor: pointer;
       transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
@@ -3553,7 +3737,7 @@
       font-size: 11px;
       font-weight: 700;
     }
-    .choice-label { font-family: var(--body-font, var(--serif)); font-size: 17px; line-height: 1.45; }
+    .choice-label { color: var(--choice-ink, var(--ink)); font-family: var(--body-font, var(--serif)); font-size: 17px; line-height: 1.45; }
     .choice-label .sw-big { font-size: 1.1em; }
     .choice-arrow { color: var(--faint); font-size: 18px; transition: color 150ms ease, transform 150ms ease; }
     .choice:hover .choice-arrow { color: var(--accent); transform: translateX(2px); }
@@ -3793,6 +3977,34 @@
     .save-btn.primary:hover { background: var(--accent-dark); color: #fffaf3; transform: translateY(-1px); }
     .save-btn.quiet { border-color: transparent; }
     .save-btn.quiet:hover { border-color: var(--line); background: transparent; color: var(--ink); }
+    .save-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+    .save-btn:disabled:hover { border-color: var(--line); background: transparent; color: var(--muted); }
+    .save-btn.primary:disabled:hover { background: var(--accent); color: #fffaf3; }
+
+    .restart-overlay { z-index: 90; }
+    .restart-label {
+      display: block;
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .restart-input {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body-font, var(--serif));
+      font-size: 16px;
+    }
+    .restart-input:focus { outline: 3px solid rgba(var(--accent-rgb), 0.24); outline-offset: 2px; }
+    .restart-hint { min-height: 18px; margin: 8px 0 0; color: var(--faint); font-size: 11px; line-height: 1.5; }
+    .restart-hint.is-ready { color: var(--accent-dark); font-weight: 650; }
 
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -3866,6 +4078,7 @@
     var stats = Array.isArray(STORY.stats) ? STORY.stats : [];
     var items = Array.isArray(STORY.items) ? STORY.items : [];
     var images = STORY.images && typeof STORY.images === 'object' ? STORY.images : {};
+    var copy = STORY.copy && typeof STORY.copy === 'object' ? STORY.copy : {};
     var state = null;
     var baseline = null;
     var currentId = null;
@@ -3883,9 +4096,25 @@
     var sceneIndexById = Object.create(null);
     var saveOverlay = null;
     var saveReturnFocus = null;
+    var restartOverlay = null;
+    var restartReturnFocus = null;
 
     function esc(value) {
       return ENGINE.escapeHTML(value);
+    }
+
+    function copyValue(key, fallback) {
+      var value = copy[key];
+      return typeof value === 'string' ? value.trim() : fallback;
+    }
+
+    function copyRequired(key, fallback) {
+      var value = copyValue(key, fallback);
+      return value || fallback;
+    }
+
+    function copyHTML(value) {
+      return esc(value).replace(/\n/g, '<br>');
     }
 
     function locateScene(id) {
@@ -4464,7 +4693,7 @@
     }
 
     function restart() {
-      startStory();
+      openRestartConfirm();
     }
 
     function toggleState() {
@@ -4507,6 +4736,104 @@
         + '</div>'
         + '<div class="save-dialog-body">' + body + '</div>'
         + '</div>';
+    }
+
+    function restartDialogHTML() {
+      return '<div class="save-dialog" role="dialog" aria-modal="true" aria-labelledby="restartDialogTitle">'
+        + '<div class="save-dialog-head">'
+        + '<div><p class="kicker">Before you restart</p><h2 id="restartDialogTitle">Restart the story?</h2></div>'
+        + '<button type="button" class="save-close" data-restart-cancel aria-label="Cancel restart">×</button>'
+        + '</div>'
+        + '<div class="save-dialog-body">'
+        + '<p class="save-note">This resets your current progress. Manually saved game keys and files are not deleted.</p>'
+        + '<label class="restart-label" for="restartConfirmInput">Type restart to confirm</label>'
+        + '<input class="restart-input" id="restartConfirmInput" type="text" autocomplete="off" spellcheck="false" placeholder="restart" aria-describedby="restartConfirmHint">'
+        + '<p class="restart-hint" id="restartConfirmHint" data-restart-hint>Type “restart” to unlock the confirm button.</p>'
+        + '<div class="save-actions">'
+        + '<button type="button" class="save-btn" data-restart-cancel>Cancel</button>'
+        + '<button type="button" class="save-btn primary" data-restart-confirm disabled>Restart story</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+
+    function ensureRestartOverlay() {
+      if (restartOverlay) return restartOverlay;
+      restartOverlay = document.createElement('div');
+      restartOverlay.className = 'save-overlay restart-overlay';
+      restartOverlay.hidden = true;
+      restartOverlay.addEventListener('click', function (event) {
+        if (event.target === restartOverlay) closeRestartConfirm(false);
+      });
+      document.body.appendChild(restartOverlay);
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && restartOverlay && !restartOverlay.hidden) {
+          event.preventDefault();
+          closeRestartConfirm(false);
+        }
+      });
+      return restartOverlay;
+    }
+
+    function closeRestartConfirm(confirmed) {
+      if (!restartOverlay || restartOverlay.hidden) return;
+      restartOverlay.hidden = true;
+      restartOverlay.innerHTML = '';
+      document.body.classList.remove('save-open');
+
+      var target = restartReturnFocus;
+      restartReturnFocus = null;
+      if (!confirmed && target && target.focus && document.contains(target)) {
+        try { target.focus(); } catch (error) { /* Ignore focus failures. */ }
+      }
+
+      if (confirmed) startStory();
+    }
+
+    function openRestartConfirm() {
+      if (restartOverlay && !restartOverlay.hidden) return;
+      if (saveOverlay && !saveOverlay.hidden) closeSaveDialog();
+      ensureRestartOverlay();
+      restartReturnFocus = document.activeElement;
+      restartOverlay.innerHTML = restartDialogHTML();
+      restartOverlay.hidden = false;
+      document.body.classList.add('save-open');
+
+      var input = restartOverlay.querySelector('#restartConfirmInput');
+      var confirm = restartOverlay.querySelector('[data-restart-confirm]');
+      var hint = restartOverlay.querySelector('[data-restart-hint]');
+
+      function update() {
+        var ready = String(input.value || '').trim().toLowerCase() === 'restart';
+        confirm.disabled = !ready;
+        hint.textContent = ready
+          ? 'Ready to restart.'
+          : 'Type “restart” to unlock the confirm button.';
+        hint.classList.toggle('is-ready', ready);
+      }
+
+      input.addEventListener('input', update);
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && !confirm.disabled) {
+          event.preventDefault();
+          closeRestartConfirm(true);
+        }
+      });
+
+      Array.prototype.forEach.call(restartOverlay.querySelectorAll('[data-restart-cancel]'), function (button) {
+        button.addEventListener('click', function () {
+          closeRestartConfirm(false);
+        });
+      });
+
+      confirm.addEventListener('click', function () {
+        closeRestartConfirm(true);
+      });
+
+      update();
+      setTimeout(function () {
+        input.focus();
+      }, 0);
     }
 
     function ensureSaveOverlay() {
@@ -4674,13 +5001,14 @@
     }
 
     function coverHTML() {
+      var subtitle = copyValue('coverSubtitle', 'Every choice leaves a mark. Some doors only open once.');
       return '<div class="cover-shell">'
         + '<main class="cover">'
         + '<span class="cover-mark" aria-hidden="true">✦</span>'
         + '<p class="kicker">An interactive story</p>'
         + '<h1 class="cover-title">' + esc(STORY.title || 'Untitled Story') + '</h1>'
         + '<div class="cover-rule" aria-hidden="true"></div>'
-        + '<p class="cover-sub">Every choice leaves a mark. Some doors only open once.</p>'
+        + (subtitle ? '<p class="cover-sub">' + copyHTML(subtitle) + '</p>' : '')
         + '<button type="button" class="begin-btn" data-begin="1"><span>Begin the story</span><span aria-hidden="true">→</span></button>'
         + '<button type="button" class="cover-load" data-load-save="1">Load a saved game</button>'
         + '<p class="cover-hint">Save your progress at any time with a key or file.</p>'
@@ -4718,11 +5046,14 @@
     }
 
     function endHTML() {
+      var title = copyRequired('endingTitle', 'The End');
+      var message = copyValue('endingMessage', 'You can begin again and see where a different choice leads.');
+      var button = copyRequired('endingButton', 'Read again');
       return '<div class="end-card">'
         + '<span class="end-mark" aria-hidden="true">✦</span>'
-        + '<h2>The End</h2>'
-        + '<p>You can begin again and see where a different choice leads.</p>'
-        + '<button type="button" class="read-again" data-restart="1">Read again</button>'
+        + '<h2>' + esc(title) + '</h2>'
+        + (message ? '<p>' + copyHTML(message) + '</p>' : '')
+        + '<button type="button" class="read-again" data-restart="1">' + esc(button) + '</button>'
         + '</div>';
     }
 
@@ -4956,6 +5287,7 @@
       statePanel: {
         title: statePanelTitle()
       },
+      copy: clone(normalizeStoryCopy(story.copy)),
       theme: clone(normalizeTheme(story.theme)),
       images: clone(story.images || {}),
       categories: clone(story.categories || []),
