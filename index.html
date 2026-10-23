@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Storyweave is a browser-based studio for writing and exporting interactive stories.">
+  <meta name="theme-color" content="#f5efe4">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23b75435'/%3E%3Cpath d='M6 6.5A1.5 1.5 0 0 1 7.5 5H18v12H7.5A1.5 1.5 0 0 0 6 18.5z' fill='none' stroke='%23fff7ec' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M9 9h6M9 12h4' stroke='%23fff7ec' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <title>Storyweave · Interactive Story Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Storyweave">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path>
+            <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5z"></path>
+            <path d="M8 8h7M8 11.5h5"></path>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <span class="brand-name">Storyweave</span>
+          <span class="brand-sub">interactive story studio</span>
+        </div>
+      </div>
+
+      <div class="project-title-wrap">
+        <input id="storyTitle" class="project-title" type="text" value="Untitled Story" aria-label="Story title" spellcheck="false">
+        <span id="saveState" class="save-state"><span class="save-dot"></span>Saved locally</span>
+      </div>
+
+      <div class="top-actions">
+        <button id="newBtn" class="btn btn-quiet" type="button">New</button>
+        <button id="importBtn" class="btn btn-quiet" type="button">Import</button>
+        <div class="menu-wrap">
+          <button id="exportBtn" class="btn btn-quiet" type="button" aria-haspopup="menu" aria-expanded="false">
+            Export
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 4.5 6 8l4-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="exportMenu" class="menu-panel" role="menu" hidden>
+            <button type="button" role="menuitem" data-export="html">
+              <span class="menu-icon" aria-hidden="true">↗</span>
+              <span><strong>Playable HTML</strong><small>One self-contained file</small></span>
+            </button>
+            <button type="button" role="menuitem" data-export="json">
+              <span class="menu-icon" aria-hidden="true">{ }</span>
+              <span><strong>Project JSON</strong><small>Editable backup</small></span>
+            </button>
+          </div>
+        </div>
+        <button id="playBtn" class="btn btn-primary" type="button">
+          <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M3 1.8v8.4L10 6z" fill="currentColor"/></svg>
+          Playtest
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Story map">
+        <div class="sidebar-head">
+          <div>
+            <p class="eyebrow">Story map</p>
+            <h2>Scenes <span id="sceneCount" class="count-pill">0</span></h2>
+          </div>
+          <button id="addActBtn" class="icon-btn accent" type="button" title="Add act" aria-label="Add act">+</button>
+        </div>
+        <div id="storyTree" class="story-tree"></div>
+        <div class="sidebar-foot">
+          <label class="field-label" for="startSceneSelect">Story begins at</label>
+          <select id="startSceneSelect" class="select"></select>
+          <p class="sidebar-note">Everything saves automatically in this browser.</p>
+        </div>
+      </aside>
+
+      <section id="editorPane" class="editor" aria-label="Scene editor"></section>
+
+      <aside class="inspector" aria-label="Story state, theme, images, and writing guide">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Story state</p>
+              <h2>Categories</h2>
+            </div>
+            <button id="addCategoryBtn" class="btn btn-small btn-soft" type="button">+ Category</button>
+          </div>
+          <div class="panel-settings">
+            <label class="field-label" for="statePanelTitle">Stat screen title</label>
+            <input id="statePanelTitle" class="input" type="text" value="Story state" maxlength="60" placeholder="Story state" spellcheck="false">
+            <p class="field-note">Shown in playtest and in exported stories.</p>
+          </div>
+          <p class="field-note">Create stat sheets, inventories, notes, or hints. Use the arrows to reorder categories.</p>
+          <div id="categoryList" class="category-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Look &amp; feel</p>
+              <h2>Theme &amp; images</h2>
+            </div>
+          </div>
+
+          <div class="theme-grid">
+            <label class="field">
+              <span class="field-label">Body font</span>
+              <select id="themeBodyFont" class="select" data-theme-field="bodyFont">
+                <option value="literary">Literary serif</option>
+                <option value="classic">Classic serif</option>
+                <option value="modern">Modern sans</option>
+                <option value="humanist">Humanist sans</option>
+                <option value="typewriter">Typewriter</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Heading font</span>
+              <select id="themeHeadingFont" class="select" data-theme-field="headingFont">
+                <option value="literary">Literary serif</option>
+                <option value="classic">Classic serif</option>
+                <option value="modern">Modern sans</option>
+                <option value="humanist">Humanist sans</option>
+                <option value="typewriter">Typewriter</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="theme-colors">
+            <label class="color-field">
+              <span class="field-label">Accent</span>
+              <input id="themeAccent" type="color" value="#b75435" data-theme-field="accent">
+            </label>
+            <label class="color-field">
+              <span class="field-label">Background</span>
+              <input id="themePaper" type="color" value="#f7f2e8" data-theme-field="paper">
+            </label>
+            <label class="color-field">
+              <span class="field-label">Text</span>
+              <input id="themeInk" type="color" value="#29241f" data-theme-field="ink">
+            </label>
+          </div>
+          <button id="resetThemeBtn" class="btn btn-small btn-quiet theme-reset" type="button">Reset theme</button>
+
+          <div class="variable-section image-section">
+            <div class="variable-section-head">
+              <div>
+                <h3>Embedded images</h3>
+                <p>PNG, JPEG, GIF, or WebP. Stored inside the project and the exported HTML.</p>
+              </div>
+              <button id="uploadImageBtn" class="btn btn-small btn-soft" type="button">+ Upload</button>
+            </div>
+            <div id="imageList" class="image-list"></div>
+          </div>
+        </section>
+
+        <section class="panel guide-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Cheat sheet</p>
+              <h2>Special text</h2>
+            </div>
+          </div>
+
+          <div class="guide-group">
+            <h3>Formatting</h3>
+            <div class="code-list">
+              <div><code>[b]bold[/b]</code><span>bold</span></div>
+              <div><code>[i]italic[/i]</code><span>italic</span></div>
+              <div><code>[u]underline[/u]</code><span>underline</span></div>
+              <div><code>[s]strike[/s]</code><span>strikethrough</span></div>
+              <div><code>[big]big[/big]</code><span>larger text</span></div>
+              <div><code>[small]small[/small]</code><span>smaller text</span></div>
+              <div><code>[color=#b75435]warm[/color]</code><span>colored text</span></div>
+              <div><code>[mark]highlight[/mark]</code><span>highlight</span></div>
+              <div><code>[center]centered[/center]</code><span>centered block</span></div>
+              <div><code>[heading]Heading[/heading]</code><span>section heading</span></div>
+            </div>
+          </div>
+
+          <div class="guide-group">
+            <h3>Stats, items &amp; images</h3>
+            <div class="code-list">
+              <div><code>[var:courage]</code><span>show a stat</span></div>
+              <div><code>[item:lantern]</code><span>show an item count</span></div>
+              <div><code>[img:image_id]</code><span>show an embedded image</span></div>
+              <div><code>[set var:gold = 1]</code><span>set inline</span></div>
+              <div><code>[if var:courage &gt;= 2]…[/if]</code><span>conditional</span></div>
+              <div><code>[if item:lantern]yes[else]no[/if]</code><span>either / or</span></div>
+            </div>
+          </div>
+
+          <div class="guide-group">
+            <h3>Choices &amp; effects</h3>
+            <div class="code-list">
+              <div><code>var:courage &gt;= 2</code><span>stat condition</span></div>
+              <div><code>item:lantern</code><span>has an item</span></div>
+              <div><code>var:name is "Mira"</code><span>text match</span></div>
+              <div><code>var:courage += 1</code><span>add to a stat</span></div>
+              <div><code>item:lantern += 1</code><span>add to inventory</span></div>
+              <div><code>var:name = "Mira"</code><span>set text</span></div>
+            </div>
+            <p class="guide-note">Use <code>var:</code> for stats and <code>item:</code> for inventory in text, conditions, and effects. Display names appear on the stat screen; IDs are used in commands. Bare IDs such as <code>courage</code> still work. Use <code>and</code>, <code>or</code>, and <code>not</code> to combine conditions. Separate effects with a new line or <code>;</code>.</p>
+          </div>
+
+          <p class="guide-foot">Inventory categories show only items whose count is above zero. Type <code>\[</code> to print a literal bracket. Images are embedded as data, so the export never needs separate image files.</p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="playOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="playHeading" hidden>
+    <div class="play-shell">
+      <header class="play-topbar">
+        <div class="play-label">
+          <span class="play-dot"></span>
+          <span id="playHeading">Playtest</span>
+        </div>
+        <div class="play-top-actions">
+          <button id="playRestartBtn" class="btn btn-small btn-quiet" type="button">Restart</button>
+          <button id="playCloseBtn" class="icon-btn" type="button" title="Close playtest" aria-label="Close playtest">×</button>
+        </div>
+      </header>
+      <div id="playContent" class="play-content"></div>
+    </div>
+  </div>
+
+  <input id="fileInput" type="file" accept=".json,application/json" hidden>
+  <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div class="noscript">Storyweave needs JavaScript enabled to run.</div>
+  </noscript>
+
+  <script src="engine.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
