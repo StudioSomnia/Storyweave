@@ -27,11 +27,18 @@
       </div>
 
       <div class="project-title-wrap">
-        <input id="storyTitle" class="project-title" type="text" value="Untitled Story" aria-label="Story title" spellcheck="false">
+        <button id="storySettingsBtn" class="project-title" type="button" title="Story settings" aria-haspopup="dialog" aria-controls="storySettingsOverlay">
+          <span id="storyTitleLabel" class="project-title-text">Untitled Story</span>
+          <svg class="project-title-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <path d="M8 10.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4Z" fill="none" stroke="currentColor" stroke-width="1.2"></path>
+            <path d="M13.2 9.4a5.6 5.6 0 0 0 0-2.8l-1.1-.3a4.3 4.3 0 0 0-.7-1.2l.2-1.1-2.4-1.4-.8.8a4.4 4.4 0 0 0-1.4 0l-.8-.8L3.8 4l.2 1.1a4.3 4.3 0 0 0-.7 1.2l-1.1.3a5.6 5.6 0 0 0 0 2.8l1.1.3a4.3 4.3 0 0 0 .7 1.2l-.2 1.1 2.4 1.4.8-.8a4.4 4.4 0 0 0 1.4 0l.8.8 2.4-1.4-.2-1.1a4.3 4.3 0 0 0 .7-1.2Z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"></path>
+          </svg>
+        </button>
         <span id="saveState" class="save-state"><span class="save-dot"></span>Saved locally</span>
       </div>
 
       <div class="top-actions">
+        <button id="helpBtn" class="icon-btn help-trigger" type="button" title="Help and markup guide" aria-label="Open help and markup guide" aria-haspopup="dialog" aria-controls="helpOverlay">?</button>
         <button id="newBtn" class="btn btn-quiet" type="button">New</button>
         <button id="importBtn" class="btn btn-quiet" type="button">Import</button>
         <div class="menu-wrap">
@@ -76,7 +83,7 @@
 
       <section id="editorPane" class="editor" aria-label="Scene editor"></section>
 
-      <aside class="inspector" aria-label="Story state, cover and ending text, theme, images, and writing guide">
+      <aside class="inspector" aria-label="Story state and images">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -97,37 +104,55 @@
         <section class="panel">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Reader-facing text</p>
-              <h2>Cover &amp; ending</h2>
+              <p class="eyebrow">Story assets</p>
+              <h2>Images</h2>
             </div>
+            <button id="uploadImageBtn" class="btn btn-small btn-soft" type="button">+ Upload</button>
           </div>
-          <div class="story-copy-fields">
-            <label class="field">
+          <p class="field-note">PNG, JPEG, GIF, or WebP. Stored inside the project and the exported HTML.</p>
+          <div id="imageList" class="image-list"></div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="storySettingsOverlay" class="overlay settings-overlay" role="dialog" aria-modal="true" aria-labelledby="storySettingsHeading" hidden>
+    <div class="settings-dialog">
+      <div class="settings-head">
+        <div>
+          <p class="eyebrow">Story settings</p>
+          <h2 id="storySettingsHeading">Shape the story</h2>
+        </div>
+        <button id="storySettingsCloseBtn" class="icon-btn" type="button" title="Close story settings" aria-label="Close story settings">×</button>
+      </div>
+
+      <div class="settings-body">
+        <section class="settings-section">
+          <div class="settings-section-head">
+            <h3>Story details</h3>
+            <p>The title and cover subtitle readers see before the story begins.</p>
+          </div>
+          <div class="settings-grid">
+            <label class="field settings-field-wide">
+              <span class="field-label">Story title</span>
+              <input id="storyTitle" class="input" type="text" maxlength="120" value="Untitled Story" aria-label="Story title" spellcheck="false">
+            </label>
+            <label class="field settings-field-wide">
               <span class="field-label">Cover subtitle</span>
               <textarea id="coverSubtitle" class="textarea" rows="2" maxlength="240" placeholder="Every choice leaves a mark." data-copy-field="coverSubtitle"></textarea>
-            </label>
-            <label class="field">
-              <span class="field-label">Ending title</span>
-              <input id="endingTitle" class="input" type="text" maxlength="80" placeholder="The End" data-copy-field="endingTitle" spellcheck="false">
-            </label>
-            <label class="field">
-              <span class="field-label">Ending message</span>
-              <textarea id="endingMessage" class="textarea" rows="3" maxlength="300" placeholder="You can begin again..." data-copy-field="endingMessage"></textarea>
             </label>
             <label class="field">
               <span class="field-label">Ending button</span>
               <input id="endingButton" class="input" type="text" maxlength="40" placeholder="Read again" data-copy-field="endingButton" spellcheck="false">
             </label>
           </div>
-          <p class="field-note">Shown on the cover and ending screen in playtest and exported stories. Leave the subtitle or message blank to hide it.</p>
+          <p class="field-note">The ending screen uses a fixed “The End” heading. The final scene’s own title and text carry the ending.</p>
         </section>
 
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">Look &amp; feel</p>
-              <h2>Theme &amp; images</h2>
-            </div>
+        <section class="settings-section">
+          <div class="settings-section-head">
+            <h3>Theme</h3>
+            <p>Fonts and colors for the preview, playtest, and exported story.</p>
           </div>
 
           <div class="theme-grid">
@@ -177,72 +202,74 @@
           </div>
           <p class="field-note">Scene title and choice text colors apply to the preview, playtest, and exported stories.</p>
           <button id="resetThemeBtn" class="btn btn-small btn-quiet theme-reset" type="button">Reset theme</button>
-
-          <div class="variable-section image-section">
-            <div class="variable-section-head">
-              <div>
-                <h3>Embedded images</h3>
-                <p>PNG, JPEG, GIF, or WebP. Stored inside the project and the exported HTML.</p>
-              </div>
-              <button id="uploadImageBtn" class="btn btn-small btn-soft" type="button">+ Upload</button>
-            </div>
-            <div id="imageList" class="image-list"></div>
-          </div>
         </section>
+      </div>
 
-        <section class="panel guide-panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">Cheat sheet</p>
-              <h2>Special text</h2>
-            </div>
+      <div class="settings-foot">
+        <button id="storySettingsDoneBtn" class="btn btn-primary" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="helpOverlay" class="overlay help-overlay" role="dialog" aria-modal="true" aria-labelledby="helpHeading" hidden>
+    <div class="help-dialog">
+      <div class="help-head">
+        <div>
+          <p class="eyebrow">Cheat sheet</p>
+          <h2 id="helpHeading">Special text</h2>
+        </div>
+        <button id="helpCloseBtn" class="icon-btn" type="button" title="Close help" aria-label="Close help">×</button>
+      </div>
+
+      <div class="help-body">
+        <div class="guide-group">
+          <h3>Formatting</h3>
+          <div class="code-list">
+            <div><code>[b]bold[/b]</code><span>bold</span></div>
+            <div><code>[i]italic[/i]</code><span>italic</span></div>
+            <div><code>[u]underline[/u]</code><span>underline</span></div>
+            <div><code>[s]strike[/s]</code><span>strikethrough</span></div>
+            <div><code>[big]big[/big]</code><span>larger text</span></div>
+            <div><code>[small]small[/small]</code><span>smaller text</span></div>
+            <div><code>[color=#b75435]warm[/color]</code><span>colored text</span></div>
+            <div><code>[mark]highlight[/mark]</code><span>highlight</span></div>
+            <div><code>[center]centered[/center]</code><span>centered block</span></div>
+            <div><code>[heading]Heading[/heading]</code><span>section heading</span></div>
           </div>
+        </div>
 
-          <div class="guide-group">
-            <h3>Formatting</h3>
-            <div class="code-list">
-              <div><code>[b]bold[/b]</code><span>bold</span></div>
-              <div><code>[i]italic[/i]</code><span>italic</span></div>
-              <div><code>[u]underline[/u]</code><span>underline</span></div>
-              <div><code>[s]strike[/s]</code><span>strikethrough</span></div>
-              <div><code>[big]big[/big]</code><span>larger text</span></div>
-              <div><code>[small]small[/small]</code><span>smaller text</span></div>
-              <div><code>[color=#b75435]warm[/color]</code><span>colored text</span></div>
-              <div><code>[mark]highlight[/mark]</code><span>highlight</span></div>
-              <div><code>[center]centered[/center]</code><span>centered block</span></div>
-              <div><code>[heading]Heading[/heading]</code><span>section heading</span></div>
-            </div>
+        <div class="guide-group">
+          <h3>Stats, items &amp; images</h3>
+          <div class="code-list">
+            <div><code>[var:courage]</code><span>show a stat</span></div>
+            <div><code>[item:lantern]</code><span>show an item count</span></div>
+            <div><code>[img:image_id]</code><span>show an embedded image</span></div>
+            <div><code>[set var:gold = 1]</code><span>set inline</span></div>
+            <div><code>[if var:courage &gt;= 2]…[/if]</code><span>conditional</span></div>
+            <div><code>[if item:lantern]yes[else]no[/if]</code><span>either / or</span></div>
           </div>
+        </div>
 
-          <div class="guide-group">
-            <h3>Stats, items &amp; images</h3>
-            <div class="code-list">
-              <div><code>[var:courage]</code><span>show a stat</span></div>
-              <div><code>[item:lantern]</code><span>show an item count</span></div>
-              <div><code>[img:image_id]</code><span>show an embedded image</span></div>
-              <div><code>[set var:gold = 1]</code><span>set inline</span></div>
-              <div><code>[if var:courage &gt;= 2]…[/if]</code><span>conditional</span></div>
-              <div><code>[if item:lantern]yes[else]no[/if]</code><span>either / or</span></div>
-            </div>
+        <div class="guide-group">
+          <h3>Choices &amp; effects</h3>
+          <div class="code-list">
+            <div><code>var:courage &gt;= 2</code><span>stat condition</span></div>
+            <div><code>item:lantern</code><span>has an item</span></div>
+            <div><code>var:name is "Mira"</code><span>text match</span></div>
+            <div><code>var:courage += 1</code><span>add to a stat</span></div>
+            <div><code>item:lantern += 1</code><span>add to inventory</span></div>
+            <div><code>var:name = "Mira"</code><span>set text</span></div>
           </div>
+          <p class="guide-note">Use <code>var:</code> for stats and <code>item:</code> for inventory in text, conditions, and effects. Display names appear on the stat screen; IDs are used in commands. Bare IDs such as <code>courage</code> still work. Use <code>and</code>, <code>or</code>, and <code>not</code> to combine conditions. Separate effects with a new line or <code>;</code>.</p>
+        </div>
 
-          <div class="guide-group">
-            <h3>Choices &amp; effects</h3>
-            <div class="code-list">
-              <div><code>var:courage &gt;= 2</code><span>stat condition</span></div>
-              <div><code>item:lantern</code><span>has an item</span></div>
-              <div><code>var:name is "Mira"</code><span>text match</span></div>
-              <div><code>var:courage += 1</code><span>add to a stat</span></div>
-              <div><code>item:lantern += 1</code><span>add to inventory</span></div>
-              <div><code>var:name = "Mira"</code><span>set text</span></div>
-            </div>
-            <p class="guide-note">Use <code>var:</code> for stats and <code>item:</code> for inventory in text, conditions, and effects. Display names appear on the stat screen; IDs are used in commands. Bare IDs such as <code>courage</code> still work. Use <code>and</code>, <code>or</code>, and <code>not</code> to combine conditions. Separate effects with a new line or <code>;</code>.</p>
-          </div>
+        <p class="guide-foot">Inventory categories show only items whose count is above zero. Type <code>\[</code> to print a literal bracket. Images are embedded as data, so the export never needs separate image files.</p>
+      </div>
 
-          <p class="guide-foot">Inventory categories show only items whose count is above zero. Type <code>\[</code> to print a literal bracket. Images are embedded as data, so the export never needs separate image files.</p>
-        </section>
-      </aside>
-    </main>
+      <div class="help-foot">
+        <button id="helpDoneBtn" class="btn btn-primary" type="button">Done</button>
+      </div>
+    </div>
   </div>
 
   <div id="playOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="playHeading" hidden>
@@ -266,19 +293,19 @@
       <div class="restart-head">
         <div>
           <p class="eyebrow">Before you restart</p>
-          <h2 id="restartTitle">Restart the story?</h2>
+          <h2 id="restartTitle">Restart the playtest?</h2>
         </div>
         <button id="restartCloseBtn" class="icon-btn" type="button" title="Cancel restart" aria-label="Cancel restart">×</button>
       </div>
-      <p class="restart-note">This resets your current progress. Manually saved game keys and files are not deleted.</p>
+      <p class="restart-note">This resets the current playtest run. Your story and saved games are not changed.</p>
       <label class="field" for="restartConfirmInput">
         <span class="field-label">Type restart to confirm</span>
-        <input id="restartConfirmInput" class="input restart-input" type="text" autocomplete="off" spellcheck="false" placeholder="restart">
+        <input id="restartConfirmInput" class="input restart-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="restart" aria-describedby="restartConfirmHint">
       </label>
-      <p id="restartConfirmHint" class="restart-hint">Type “restart” to unlock the confirm button.</p>
+      <p id="restartConfirmHint" class="restart-hint" role="status">Type “restart” to unlock the confirm button.</p>
       <div class="restart-actions">
         <button id="restartCancelBtn" class="btn btn-quiet" type="button">Cancel</button>
-        <button id="restartConfirmBtn" class="btn btn-primary" type="button" disabled>Restart story</button>
+        <button id="restartConfirmBtn" class="btn btn-primary" type="button" disabled>Restart playtest</button>
       </div>
     </div>
   </div>

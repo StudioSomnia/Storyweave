@@ -19,6 +19,8 @@
   var imageInsertAtCursor = false;
   var restartConfirmCallback = null;
   var restartConfirmReturnFocus = null;
+  var storySettingsReturnFocus = null;
+  var helpReturnFocus = null;
 
   /* ----------------------------------------------------------------------- */
   /* Small helpers                                                           */
@@ -285,8 +287,6 @@
 
   var DEFAULT_STORY_COPY = {
     coverSubtitle: 'Every choice leaves a mark. Some doors only open once.',
-    endingTitle: 'The End',
-    endingMessage: 'You can begin again and see where a different choice leads.',
     endingButton: 'Read again'
   };
 
@@ -305,14 +305,8 @@
 
     return {
       coverSubtitle: text(source.coverSubtitle, DEFAULT_STORY_COPY.coverSubtitle, 240),
-      endingTitle: text(source.endingTitle, DEFAULT_STORY_COPY.endingTitle, 80) || DEFAULT_STORY_COPY.endingTitle,
-      endingMessage: text(source.endingMessage, DEFAULT_STORY_COPY.endingMessage, 300),
       endingButton: text(source.endingButton, DEFAULT_STORY_COPY.endingButton, 40) || DEFAULT_STORY_COPY.endingButton
     };
-  }
-
-  function escMultiline(value) {
-    return esc(String(value == null ? '' : value)).replace(/\n/g, '<br>');
   }
 
   function isNumericVariableType(type) {
@@ -996,6 +990,15 @@
 
   function init() {
     els.storyTitle = document.getElementById('storyTitle');
+    els.storyTitleLabel = document.getElementById('storyTitleLabel');
+    els.storySettingsBtn = document.getElementById('storySettingsBtn');
+    els.storySettingsOverlay = document.getElementById('storySettingsOverlay');
+    els.storySettingsCloseBtn = document.getElementById('storySettingsCloseBtn');
+    els.storySettingsDoneBtn = document.getElementById('storySettingsDoneBtn');
+    els.helpBtn = document.getElementById('helpBtn');
+    els.helpOverlay = document.getElementById('helpOverlay');
+    els.helpCloseBtn = document.getElementById('helpCloseBtn');
+    els.helpDoneBtn = document.getElementById('helpDoneBtn');
     els.saveState = document.getElementById('saveState');
     els.sceneCount = document.getElementById('sceneCount');
     els.storyTree = document.getElementById('storyTree');
@@ -1004,8 +1007,6 @@
     els.categoryList = document.getElementById('categoryList');
     els.statePanelTitle = document.getElementById('statePanelTitle');
     els.coverSubtitle = document.getElementById('coverSubtitle');
-    els.endingTitle = document.getElementById('endingTitle');
-    els.endingMessage = document.getElementById('endingMessage');
     els.endingButton = document.getElementById('endingButton');
     els.themeBodyFont = document.getElementById('themeBodyFont');
     els.themeHeadingFont = document.getElementById('themeHeadingFont');
@@ -1056,8 +1057,11 @@
   }
 
   function syncHeader(touchTitle) {
-    if (els.storyTitle) els.storyTitle.value = story.title || '';
-    document.title = (story.title || 'Untitled Story') + ' · Storyweave';
+    var title = String(story.title == null ? '' : story.title);
+    var displayTitle = title.trim() || 'Untitled Story';
+    if (els.storyTitle && document.activeElement !== els.storyTitle) els.storyTitle.value = title;
+    if (els.storyTitleLabel) els.storyTitleLabel.textContent = displayTitle;
+    document.title = displayTitle + ' · Storyweave';
     if (touchTitle !== false) {
       // Kept for call-site clarity: values are already written above.
     }
@@ -1066,8 +1070,29 @@
   function bindStaticEvents() {
     els.storyTitle.addEventListener('input', function () {
       story.title = els.storyTitle.value;
-      document.title = (story.title || 'Untitled Story') + ' · Storyweave';
+      var displayTitle = story.title.trim() || 'Untitled Story';
+      if (els.storyTitleLabel) els.storyTitleLabel.textContent = displayTitle;
+      document.title = displayTitle + ' · Storyweave';
       markDirty();
+    });
+    els.storyTitle.addEventListener('change', function () {
+      story.title = els.storyTitle.value.trim();
+      els.storyTitle.value = story.title;
+      syncHeader();
+      markDirty();
+    });
+
+    els.storySettingsBtn.addEventListener('click', openStorySettings);
+    els.storySettingsCloseBtn.addEventListener('click', closeStorySettings);
+    els.storySettingsDoneBtn.addEventListener('click', closeStorySettings);
+    els.storySettingsOverlay.addEventListener('click', function (event) {
+      if (event.target === els.storySettingsOverlay) closeStorySettings();
+    });
+    els.helpBtn.addEventListener('click', openHelp);
+    els.helpCloseBtn.addEventListener('click', closeHelp);
+    els.helpDoneBtn.addEventListener('click', closeHelp);
+    els.helpOverlay.addEventListener('click', function (event) {
+      if (event.target === els.helpOverlay) closeHelp();
     });
 
     document.getElementById('newBtn').addEventListener('click', newProject);
@@ -1153,6 +1178,22 @@
       if (event.key === 'Escape') {
         event.preventDefault();
         closeRestartConfirm(false);
+      }
+      return;
+    }
+
+    if (els.helpOverlay && !els.helpOverlay.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeHelp();
+      }
+      return;
+    }
+
+    if (els.storySettingsOverlay && !els.storySettingsOverlay.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeStorySettings();
       }
       return;
     }
@@ -1449,8 +1490,6 @@
   function renderStoryCopyControls() {
     var copy = normalizeStoryCopy(story.copy);
     if (els.coverSubtitle && document.activeElement !== els.coverSubtitle) els.coverSubtitle.value = copy.coverSubtitle;
-    if (els.endingTitle && document.activeElement !== els.endingTitle) els.endingTitle.value = copy.endingTitle;
-    if (els.endingMessage && document.activeElement !== els.endingMessage) els.endingMessage.value = copy.endingMessage;
     if (els.endingButton && document.activeElement !== els.endingButton) els.endingButton.value = copy.endingButton;
   }
 
@@ -1752,7 +1791,6 @@
   }
 
   function previewFlowHTML(scene, vars) {
-    var copy = normalizeStoryCopy(story.copy);
     var html = '<div class="preview-flow"><p class="preview-flow-label">What happens next</p>';
 
     if (scene.mode === 'choices') {
@@ -1781,10 +1819,7 @@
         html += '<p class="preview-muted">No destination scene is set.</p>';
       }
     } else {
-      html += '<div class="preview-ending"><span aria-hidden="true">✦</span> ' + esc(copy.endingTitle) + '</div>';
-      if (copy.endingMessage) {
-        html += '<p class="preview-ending-message">' + escMultiline(copy.endingMessage) + '</p>';
-      }
+      html += '<div class="preview-ending"><span aria-hidden="true">✦</span> The End</div>';
     }
 
     html += '</div>';
@@ -2700,7 +2735,7 @@
   }
 
   function updateStoryCopyField(field, value, finalize) {
-    if (field !== 'coverSubtitle' && field !== 'endingTitle' && field !== 'endingMessage' && field !== 'endingButton') return;
+    if (field !== 'coverSubtitle' && field !== 'endingButton') return;
     story.copy = normalizeStoryCopy(story.copy);
     story.copy[field] = String(value == null ? '' : value);
     if (finalize) {
@@ -3039,6 +3074,64 @@
   }
 
   /* ----------------------------------------------------------------------- */
+  /* Story settings and help                                                 */
+  /* ----------------------------------------------------------------------- */
+
+  function syncEditorModalState() {
+    var open = (els.playOverlay && !els.playOverlay.hidden)
+      || (els.storySettingsOverlay && !els.storySettingsOverlay.hidden)
+      || (els.helpOverlay && !els.helpOverlay.hidden);
+    document.body.classList.toggle('modal-open', !!open);
+  }
+
+  function openStorySettings() {
+    if (!els.storySettingsOverlay || !els.storySettingsOverlay.hidden) return;
+    storySettingsReturnFocus = document.activeElement;
+    if (els.storyTitle && document.activeElement !== els.storyTitle) els.storyTitle.value = story.title || '';
+    renderStoryCopyControls();
+    renderThemeControls();
+    els.storySettingsOverlay.hidden = false;
+    syncEditorModalState();
+    setTimeout(function () {
+      if (els.storyTitle) els.storyTitle.focus();
+    }, 0);
+  }
+
+  function closeStorySettings() {
+    if (!els.storySettingsOverlay || els.storySettingsOverlay.hidden) return;
+    els.storySettingsOverlay.hidden = true;
+    syncEditorModalState();
+
+    var target = storySettingsReturnFocus;
+    storySettingsReturnFocus = null;
+    if (target && target.focus && document.contains(target)) {
+      try { target.focus(); } catch (error) { /* Ignore focus failures. */ }
+    }
+  }
+
+  function openHelp() {
+    if (!els.helpOverlay || !els.helpOverlay.hidden) return;
+    helpReturnFocus = document.activeElement;
+    els.helpOverlay.hidden = false;
+    syncEditorModalState();
+    setTimeout(function () {
+      if (els.helpCloseBtn) els.helpCloseBtn.focus();
+    }, 0);
+  }
+
+  function closeHelp() {
+    if (!els.helpOverlay || els.helpOverlay.hidden) return;
+    els.helpOverlay.hidden = true;
+    syncEditorModalState();
+
+    var target = helpReturnFocus;
+    helpReturnFocus = null;
+    if (target && target.focus && document.contains(target)) {
+      try { target.focus(); } catch (error) { /* Ignore focus failures. */ }
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
   /* Playtest                                                                */
   /* ----------------------------------------------------------------------- */
 
@@ -3062,7 +3155,7 @@
     };
 
     els.playOverlay.hidden = false;
-    document.body.classList.add('modal-open');
+    syncEditorModalState();
     enterPlayScene(start.id, true);
     els.playCloseBtn.focus();
   }
@@ -3070,7 +3163,7 @@
   function closePlaytest() {
     if (els.restartOverlay && !els.restartOverlay.hidden) closeRestartConfirm(false);
     els.playOverlay.hidden = true;
-    document.body.classList.remove('modal-open');
+    syncEditorModalState();
     playState = null;
     if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
       lastFocusedElement.focus();
@@ -3256,8 +3349,7 @@
     var endsNow = playState.ended || scene.mode === 'end';
     var endingHTML = endsNow
       ? '<div class="play-ending"><span class="play-ending-mark" aria-hidden="true">✦</span>'
-        + '<h2>' + esc(copy.endingTitle) + '</h2>'
-        + (copy.endingMessage ? '<p>' + escMultiline(copy.endingMessage) + '</p>' : '')
+        + '<h2>The End</h2>'
         + '<button type="button" class="btn btn-primary" data-action="play-restart">' + esc(copy.endingButton) + '</button>'
         + '</div>'
       : '';
@@ -4747,8 +4839,8 @@
         + '<div class="save-dialog-body">'
         + '<p class="save-note">This resets your current progress. Manually saved game keys and files are not deleted.</p>'
         + '<label class="restart-label" for="restartConfirmInput">Type restart to confirm</label>'
-        + '<input class="restart-input" id="restartConfirmInput" type="text" autocomplete="off" spellcheck="false" placeholder="restart" aria-describedby="restartConfirmHint">'
-        + '<p class="restart-hint" id="restartConfirmHint" data-restart-hint>Type “restart” to unlock the confirm button.</p>'
+        + '<input class="restart-input" id="restartConfirmInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="restart" aria-describedby="restartConfirmHint">'
+        + '<p class="restart-hint" id="restartConfirmHint" data-restart-hint role="status">Type “restart” to unlock the confirm button.</p>'
         + '<div class="save-actions">'
         + '<button type="button" class="save-btn" data-restart-cancel>Cancel</button>'
         + '<button type="button" class="save-btn primary" data-restart-confirm disabled>Restart story</button>'
@@ -4910,6 +5002,7 @@
     }
 
     function openSaveDialog(mode) {
+      if (restartOverlay && !restartOverlay.hidden) closeRestartConfirm(false);
       ensureSaveOverlay();
       var key = '';
       if (mode === 'save') {
@@ -5046,13 +5139,10 @@
     }
 
     function endHTML() {
-      var title = copyRequired('endingTitle', 'The End');
-      var message = copyValue('endingMessage', 'You can begin again and see where a different choice leads.');
       var button = copyRequired('endingButton', 'Read again');
       return '<div class="end-card">'
         + '<span class="end-mark" aria-hidden="true">✦</span>'
-        + '<h2>' + esc(title) + '</h2>'
-        + (message ? '<p>' + copyHTML(message) + '</p>' : '')
+        + '<h2>The End</h2>'
         + '<button type="button" class="read-again" data-restart="1">' + esc(button) + '</button>'
         + '</div>';
     }

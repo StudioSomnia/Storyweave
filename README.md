@@ -31,9 +31,10 @@ Press **New** to start from a blank one-act project. New and Import both replace
   - **Inventory** categories show only variables whose count is above zero, with a `×` count.
   - Use categories for stats, inventory, field notes, clues, relationships, or anything else the reader should see.
 - **Stat screen title** — names the in-story state panel. Call it *Story state*, *Stat sheet*, *Field notes*, *Inventory*, or anything else. The title is part of the project and is saved with it, but the exported story has no editor for changing it.
-- **Cover & ending** — edit the cover subtitle, ending title, ending message, and ending button label. These appear in playtest and in exported stories, and line breaks are preserved. Leave the subtitle or message blank to hide it.
-- **Theme & images** — choose a body font, heading font, accent color, background, text color, scene title color, and choice text color. Scene title and choice text start out matching the text color; change their swatches to give them a different color. All fonts are self-contained system stacks, so exported stories never load a web font. Uploaded images are compressed when needed and stored inside the project as data URLs.
-- **Playtest** — runs the story from the beginning with live categories, restart, and an optional **Show locked choices** view. The state panel never shows a path or history.
+- **Story settings** — click the story title in the header to open **Story settings**. It contains the story title, cover subtitle, ending button label, and theme fonts and colors. Scene title and choice text start out matching the text color; change their swatches to give them a different color. All fonts are self-contained system stacks, so exported stories never load a web font. The ending screen always uses a fixed **The End** heading; write the final scene's own title and text to carry the ending.
+- **Images** — the right-hand panel embeds images in the project. Uploaded images are compressed when needed and stored inside the project as data URLs.
+- **Help** — the `?` button beside **New**, **Import**, and **Export** opens the markup cheat sheet at any time.
+- **Playtest** — runs the story from the beginning with live categories, a restart guarded by typed confirmation, and an optional **Show locked choices** view. The state panel never shows a path or history.
 
 Everything is saved automatically to this browser's `localStorage` under `storyweave.project.v1`. The save indicator in the header confirms it. Clearing browser site data removes the autosave, so use **Export → Project JSON** for backups.
 
@@ -78,7 +79,7 @@ Inventory variables are always counted. Categories are shown in the order you ar
 
 ## Special text markup
 
-Formatting tags can be nested.
+Formatting tags can be nested. The same reference is available in the editor from the `?` button.
 
 | Markup | Result |
 | --- | --- |
@@ -98,7 +99,7 @@ Formatting tags can be nested.
 | `[muted]muted[/muted]` | muted text |
 | `[hr]` | horizontal divider |
 | `[br]` | line break |
-| `[img:image_id]` | an embedded image from **Theme & images** |
+| `[img:image_id]` | an embedded image from the **Images** panel |
 | `\[` | a literal `[` |
 
 Aliases: `[strong]`, `[em]`, `[strike]`, `[del]`, and `[highlight]`.
@@ -154,7 +155,7 @@ Direct links can also run effects when the reader continues. A scene's **On ente
 
 ### Playable HTML
 
-Downloads one `.html` file containing the story, engine, styles, player, cover and ending text, theme, and any embedded images. It has no external dependencies and works offline. Readers open the state panel with the button in the top bar; its title, categories, and contents are fixed by the exported project.
+Downloads one `.html` file containing the story, engine, styles, player, cover text, ending button, theme, and any embedded images. It has no external dependencies and works offline. Readers open the state panel with the button in the top bar; its title, categories, and contents are fixed by the exported project.
 
 ### Saving progress in an exported story
 
@@ -165,6 +166,7 @@ Exported stories include manual save and load controls. They do not write saves 
 - Save keys look like `SW-THE-LANTERN-AT-LOW-TIDE-A2-C1-<base62 payload>`. The title and act/chapter labels are readable; the payload is a compact, case-sensitive Base62 encoding. Treat the whole key as one value and do not edit it.
 - Keys are tied to the story and its version. If the story has changed since the save was made, the player shows **Version mismatch, accuracy not guaranteed!** and offers a best-effort load. When the version matches, the saved scene and state are restored. After a mismatch, the player resumes at the saved scene with a best-effort state. Missing scenes fall back to the story's beginning, and variables that no longer exist are skipped.
 - A save file is plain text containing the same key. It can be renamed, copied, or stored anywhere.
+- **Restart** — the top-bar button, an ending's **Read again** button, and the missing-scene recovery button all open a confirmation screen. Type `restart` to unlock **Restart story**. Restarting resets only the current progress; save keys and save files are not deleted.
 
 Playtest uses the editor's live preview and does not create save keys. Export **Playable HTML** to test saving and loading exactly as a reader will use it.
 
